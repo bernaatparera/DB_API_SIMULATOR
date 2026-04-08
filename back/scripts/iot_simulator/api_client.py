@@ -18,43 +18,40 @@ class Sensor:
     tipo: str
 
 
+@dataclass
+class Granja:
+    id: int
+    nombre: str
+
+
+@dataclass
+class Parcela:
+    id: int
+    granja_id: int
+    nombre: str
+    tamx: int
+    tamy: int
+
+
+@dataclass
+class Casilla:
+    id: int
+    parcela_id: int
+    posx: int
+    posy: int
+    estado: str
+
+
 class APIClient:
     """Cliente para interactuar con la API de AgroPrecision"""
     
     def __init__(self):
-        self.token: Optional[str] = None
         self.session = requests.Session()
     
     @property
     def headers(self) -> dict:
-        """Headers con autorización si hay token"""
-        h = {"Content-Type": "application/json"}
-        if self.token:
-            h["Authorization"] = f"Bearer {self.token}"
-        return h
-    
-    def login(self, username: str, password: str) -> bool:
-        """
-        Autenticarse con la API usando OAuth2 Password Flow
-        Retorna True si el login fue exitoso
-        """
-        try:
-            response = self.session.post(
-                config.login_url,
-                data={"username": username, "password": password},
-                headers={"Content-Type": "application/x-www-form-urlencoded"}
-            )
-            
-            if response.status_code == 200:
-                data = response.json()
-                self.token = data.get("access_token")
-                return True
-            else:
-                return False
-                
-        except requests.RequestException as e:
-            print(f"[ERROR] Error de conexión: {e}")
-            return False
+        """Headers por defecto para peticiones JSON"""
+        return {"Content-Type": "application/json"}
     
     def get_sensores(self, limit: int = 100) -> list[Sensor]:
         """Obtener lista de sensores disponibles"""
@@ -77,15 +74,103 @@ class APIClient:
                     for s in data
                 ]
             elif response.status_code == 401:
-                print("[ERROR] No autorizado. Por favor, haz login primero.")
+                print("[ERROR] 401 en /sensores: la API que está corriendo aún exige JWT.")
+                print("[INFO] Reinicia el servicio API para cargar los cambios sin auth IoT.")
                 return []
             else:
-                print(f"[ERROR] Error al obtener sensores: {response.status_code}")
+                detail = response.text[:200].replace("\n", " ")
+                print(f"[ERROR] Error al obtener sensores: {response.status_code} - {detail}")
                 return []
                 
         except requests.RequestException as e:
             print(f"[ERROR] Error de conexión: {e}")
             return []
+
+    def create_granja(self, nombre: str, ubicacion_geo: str | None = None) -> Optional[Granja]:
+        try:
+            response = self.session.post(
+                f"{config.api_url}/granjas",
+                json={"nombre": nombre, "ubicacion_geo": ubicacion_geo},
+                headers=self.headers,
+            )
+            if response.status_code == 201:
+                data = response.json()
+                return Granja(id=data["id"], nombre=data["nombre"])
+            detail = response.text[:200].replace("\n", " ")
+            print(f"[ERROR] Error creando granja: {response.status_code} - {detail}")
+            return None
+        except requests.RequestException as e:
+            print(f"[ERROR] Error de conexión creando granja: {e}")
+            return None
+
+    def create_parcela(self, granja_id: int, nombre: str, tamx: int = 10, tamy: int = 10) -> Optional[Parcela]:
+        try:
+            response = self.session.post(
+                f"{config.api_url}/parcelas",
+                json={"granja_id": granja_id, "nombre": nombre, "tamx": tamx, "tamy": tamy},
+                headers=self.headers,
+            )
+            if response.status_code == 201:
+                data = response.json()
+                return Parcela(
+                    id=data["id"],
+                    granja_id=data["granja_id"],
+                    nombre=data["nombre"],
+                    tamx=data["tamx"],
+                    tamy=data["tamy"],
+                )
+            detail = response.text[:200].replace("\n", " ")
+            print(f"[ERROR] Error creando parcela: {response.status_code} - {detail}")
+            return None
+        except requests.RequestException as e:
+            print(f"[ERROR] Error de conexión creando parcela: {e}")
+            return None
+
+    def create_casilla(self, parcela_id: int, posx: int = 0, posy: int = 0, estado: str = "VACIO") -> Optional[Casilla]:
+        try:
+            response = self.session.post(
+                f"{config.api_url}/casillas",
+                json={"parcela_id": parcela_id, "posx": posx, "posy": posy, "estado": estado},
+                headers=self.headers,
+            )
+            if response.status_code == 201:
+                data = response.json()
+                return Casilla(
+                    id=data["id"],
+                    parcela_id=data["parcela_id"],
+                    posx=data["posx"],
+                    posy=data["posy"],
+                    estado=data["estado"],
+                )
+            detail = response.text[:200].replace("\n", " ")
+            print(f"[ERROR] Error creando casilla: {response.status_code} - {detail}")
+            return None
+        except requests.RequestException as e:
+            print(f"[ERROR] Error de conexión creando casilla: {e}")
+            return None
+
+    def create_sensor(self, casilla_id: int, numref: str, tipo: str, fabricante: str = "IoT Simulator") -> Optional[Sensor]:
+        try:
+            response = self.session.post(
+                config.sensores_url,
+                json={"casilla_id": casilla_id, "numref": numref, "fabricante": fabricante, "tipo": tipo},
+                headers=self.headers,
+            )
+            if response.status_code == 201:
+                data = response.json()
+                return Sensor(
+                    id=data["id"],
+                    casilla_id=data["casilla_id"],
+                    numref=data["numref"],
+                    fabricante=data.get("fabricante"),
+                    tipo=data["tipo"],
+                )
+            detail = response.text[:200].replace("\n", " ")
+            print(f"[ERROR] Error creando sensor: {response.status_code} - {detail}")
+            return None
+        except requests.RequestException as e:
+            print(f"[ERROR] Error de conexión creando sensor: {e}")
+            return None
     
     def enviar_medicion(self, sensor_id: int, variable: str, valor: float) -> bool:
         """
@@ -104,8 +189,14 @@ class APIClient:
                 json=payload,
                 headers=self.headers
             )
-            
-            return response.status_code == 201
+            if response.status_code == 201:
+                return True
+            if response.status_code == 401:
+                print("[ERROR] 401 en /mediciones: la API que está corriendo aún exige JWT.")
+                return False
+            detail = response.text[:200].replace("\n", " ")
+            print(f"[ERROR] Error enviando medición: {response.status_code} - {detail}")
+            return False
             
         except requests.RequestException as e:
             print(f"[ERROR] Error enviando medición: {e}")
