@@ -7,6 +7,7 @@ import os
 import sys
 import time
 import threading
+import uuid
 from datetime import datetime
 from typing import Dict, Optional
 from dataclasses import dataclass
@@ -157,7 +158,7 @@ def print_menu():
     print("│  3. ⏹️  Detener simulador                            │")
     print("│  4. 👁️  Ver simuladores activos                      │")
     print("│  5. ⚙️  Configuración                                 │")
-    print("│  6. 🔐 Login (cambiar credenciales)                  │")
+    print("│  6. ➕ Crear sensor e iniciar                         │")
     print("│  7. 🚪 Salir                                         │")
     print("└─────────────────────────────────────────────────────┘")
 
@@ -170,8 +171,7 @@ def show_sensors():
     sensores = api_client.get_sensores()
     
     if not sensores:
-        print("  No hay sensores disponibles o no estás autenticado.")
-        print("  Usa la opción 6 para hacer login.")
+        print("  No hay sensores disponibles.")
         return
     
     # Marcar cuáles están siendo simulados
@@ -254,6 +254,52 @@ def start_simulator_menu():
     print(f"\n{started} simulador(es) iniciado(s)")
 
 
+def create_and_start_sensor_menu():
+    """Crea granja/parcela/casilla/sensor y arranca simulación"""
+    print("\n➕ CREAR SENSOR E INICIAR")
+    print("-" * 40)
+
+    tipo = input("Tipo de sensor [temperatura]: ").strip() or "temperatura"
+    prefijo = input("Prefijo referencia [sim]: ").strip() or "sim"
+    interval_str = input(f"Intervalo en segundos [{config.default_interval_seconds}]: ").strip()
+    try:
+        interval = float(interval_str) if interval_str else config.default_interval_seconds
+        interval = max(config.min_interval_seconds, min(config.max_interval_seconds, interval))
+    except ValueError:
+        interval = config.default_interval_seconds
+
+    unique = uuid.uuid4().hex[:8]
+    granja_nombre = f"Sim Granja {unique}"
+    parcela_nombre = f"Sim Parcela {unique}"
+    numref = f"{prefijo}-{tipo}-{unique}"
+
+    print("\nCreando estructura en API...")
+    granja = api_client.create_granja(granja_nombre, "sim:auto")
+    if granja is None:
+        print("❌ No se pudo crear granja")
+        return
+
+    parcela = api_client.create_parcela(granja.id, parcela_nombre, tamx=10, tamy=10)
+    if parcela is None:
+        print("❌ No se pudo crear parcela")
+        return
+
+    casilla = api_client.create_casilla(parcela.id, posx=0, posy=0, estado="VACIO")
+    if casilla is None:
+        print("❌ No se pudo crear casilla")
+        return
+
+    sensor = api_client.create_sensor(casilla.id, numref=numref, tipo=tipo, fabricante="IoT Simulator")
+    if sensor is None:
+        print("❌ No se pudo crear sensor")
+        return
+
+    if manager.start_simulator(sensor, interval):
+        print(f"✅ Sensor creado y simulando: id={sensor.id}, numref={sensor.numref}, intervalo={interval}s")
+    else:
+        print("⚠️ Sensor creado pero no se pudo iniciar simulación")
+
+
 def stop_simulator_menu():
     """Menú para detener simuladores"""
     print("\n⏹️  DETENER SIMULADOR")
@@ -319,32 +365,8 @@ def show_config():
     print("\n⚙️  CONFIGURACIÓN")
     print("-" * 40)
     print(f"  API URL: {config.api_base_url}")
-    print(f"  Usuario: {config.username}")
     print(f"  Intervalo por defecto: {config.default_interval_seconds}s")
-    print(f"  Autenticado: {'✅ Sí' if api_client.token else '❌ No'}")
     print(f"  API disponible: {'✅ Sí' if api_client.health_check() else '❌ No'}")
-
-
-def do_login():
-    """Realiza login con credenciales"""
-    print("\n🔐 LOGIN")
-    print("-" * 40)
-    
-    username = input(f"Usuario [{config.username}]: ").strip()
-    username = username if username else config.username
-    
-    password = input("Contraseña: ").strip()
-    if not password:
-        password = config.password
-    
-    print("\nConectando...")
-    
-    if api_client.login(username, password):
-        print("✅ Login exitoso!")
-        config.username = username
-        config.password = password
-    else:
-        print("❌ Login fallido. Verifica las credenciales.")
 
 
 def main():
@@ -360,13 +382,6 @@ def main():
         print("   Puedes continuar e intentar conectar más tarde.\n")
     else:
         print("✅ API disponible")
-        
-        # Intentar login automático
-        print("🔐 Intentando login automático...")
-        if api_client.login(config.username, config.password):
-            print(f"✅ Autenticado como: {config.username}")
-        else:
-            print("⚠️  Login automático fallido. Usa la opción 6 para autenticarte.")
     
     # Loop principal
     while True:
@@ -385,7 +400,7 @@ def main():
         elif choice == '5':
             show_config()
         elif choice == '6':
-            do_login()
+            create_and_start_sensor_menu()
         elif choice == '7':
             print("\n👋 Deteniendo simuladores y saliendo...")
             manager.stop_all()

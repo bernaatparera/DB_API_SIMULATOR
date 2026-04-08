@@ -36,13 +36,13 @@ app.add_middleware(
 app.include_router(health.router)
 app.include_router(auth.router, prefix="/api/v1")
 app.include_router(usuarios.router, prefix="/api/v1")
-app.include_router(granjas.router, prefix="/api/v1", dependencies=[Depends(get_current_user)])
-app.include_router(parcelas.router, prefix="/api/v1", dependencies=[Depends(get_current_user)])
-app.include_router(casillas.router, prefix="/api/v1", dependencies=[Depends(get_current_user)])
+app.include_router(granjas.router, prefix="/api/v1")
+app.include_router(parcelas.router, prefix="/api/v1")
+app.include_router(casillas.router, prefix="/api/v1")
 app.include_router(tipos_cultivo.router, prefix="/api/v1", dependencies=[Depends(get_current_user)])
 app.include_router(ciclos_cultivo.router, prefix="/api/v1", dependencies=[Depends(get_current_user)])
-app.include_router(sensores.router, prefix="/api/v1", dependencies=[Depends(get_current_user)])
-app.include_router(mediciones.router, prefix="/api/v1", dependencies=[Depends(get_current_user)])
+app.include_router(sensores.router, prefix="/api/v1")
+app.include_router(mediciones.router, prefix="/api/v1")
 
 
 @app.get("/", tags=["meta"], summary="Informacion de la API")

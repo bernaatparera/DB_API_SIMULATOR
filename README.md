@@ -47,10 +47,6 @@ python scripts/setup_test_data.py
 python scripts/iot_simulator/main.py
 ```
 
-**Credenciales del simulador:**
-- Usuario: `iot@agroprecision.com`
-- Password: `iot12345678`
-
 ### Funciones del simulador
 | Opción | Descripción |
 |--------|-------------|
@@ -59,7 +55,7 @@ python scripts/iot_simulator/main.py
 | 3 | Detener simulador |
 | 4 | Ver simuladores activos |
 | 5 | Configuración |
-| 6 | Cambiar credenciales |
+| 6 | Crear sensor e iniciar (crea granja + parcela + casilla + sensor) |
 | 7 | Salir |
 
 ## Variables de Entorno
