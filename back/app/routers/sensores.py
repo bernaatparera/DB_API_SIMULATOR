@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import Sensor
-from app.schemas import SensorCreate, SensorRead
+from app.schemas import SensorCreate, SensorRead, SensorUpdate
 
 router = APIRouter(prefix="/sensores", tags=["sensores"])
 
@@ -43,3 +43,53 @@ def create_sensor(payload: SensorCreate, db: Session = Depends(get_db)) -> Senso
         raise HTTPException(status_code=400, detail="No se pudo crear el sensor")
     db.refresh(sensor)
     return sensor
+
+
+@router.put("/{sensor_id}", response_model=SensorRead, summary="Actualizar sensor")
+def update_sensor(sensor_id: int, payload: SensorCreate, db: Session = Depends(get_db)) -> Sensor:
+    sensor = db.get(Sensor, sensor_id)
+    if sensor is None:
+        raise HTTPException(status_code=404, detail="Sensor no encontrado")
+
+    for key, value in payload.model_dump().items():
+        setattr(sensor, key, value)
+
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="No se pudo actualizar el sensor")
+    db.refresh(sensor)
+    return sensor
+
+
+@router.patch("/{sensor_id}", response_model=SensorRead, summary="Actualizar parcialmente sensor")
+def patch_sensor(sensor_id: int, payload: SensorUpdate, db: Session = Depends(get_db)) -> Sensor:
+    sensor = db.get(Sensor, sensor_id)
+    if sensor is None:
+        raise HTTPException(status_code=404, detail="Sensor no encontrado")
+
+    updates = payload.model_dump(exclude_unset=True)
+    if not updates:
+        raise HTTPException(status_code=400, detail="No se enviaron campos para actualizar")
+
+    for key, value in updates.items():
+        setattr(sensor, key, value)
+
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="No se pudo actualizar el sensor")
+    db.refresh(sensor)
+    return sensor
+
+
+@router.delete("/{sensor_id}", status_code=204, summary="Eliminar sensor")
+def delete_sensor(sensor_id: int, db: Session = Depends(get_db)) -> None:
+    sensor = db.get(Sensor, sensor_id)
+    if sensor is None:
+        raise HTTPException(status_code=404, detail="Sensor no encontrado")
+
+    db.delete(sensor)
+    db.commit()

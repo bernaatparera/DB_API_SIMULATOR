@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import Usuario
-from app.schemas import UsuarioCreate, UsuarioRead
+from app.schemas import UsuarioCreate, UsuarioRead, UsuarioUpdate
 from app.security import get_current_user, get_password_hash
 
 router = APIRouter(prefix="/usuarios", tags=["usuarios"])
@@ -51,3 +51,72 @@ def create_usuario(payload: UsuarioCreate, db: Session = Depends(get_db)) -> Usu
         raise HTTPException(status_code=400, detail="No se pudo crear el usuario")
     db.refresh(usuario)
     return usuario
+
+
+@router.put("/{usuario_id}", response_model=UsuarioRead, summary="Actualizar usuario")
+def update_usuario(
+    usuario_id: str,
+    payload: UsuarioCreate,
+    _: Usuario = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> Usuario:
+    usuario = db.get(Usuario, usuario_id)
+    if usuario is None:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+    data = payload.model_dump()
+    data["hash_contrasena"] = get_password_hash(payload.hash_contrasena)
+    for key, value in data.items():
+        setattr(usuario, key, value)
+
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="No se pudo actualizar el usuario")
+    db.refresh(usuario)
+    return usuario
+
+
+@router.patch("/{usuario_id}", response_model=UsuarioRead, summary="Actualizar parcialmente usuario")
+def patch_usuario(
+    usuario_id: str,
+    payload: UsuarioUpdate,
+    _: Usuario = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> Usuario:
+    usuario = db.get(Usuario, usuario_id)
+    if usuario is None:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+    updates = payload.model_dump(exclude_unset=True)
+    if not updates:
+        raise HTTPException(status_code=400, detail="No se enviaron campos para actualizar")
+
+    if "hash_contrasena" in updates and updates["hash_contrasena"] is not None:
+        updates["hash_contrasena"] = get_password_hash(updates["hash_contrasena"])
+
+    for key, value in updates.items():
+        setattr(usuario, key, value)
+
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="No se pudo actualizar el usuario")
+    db.refresh(usuario)
+    return usuario
+
+
+@router.delete("/{usuario_id}", status_code=204, summary="Eliminar usuario")
+def delete_usuario(
+    usuario_id: str,
+    _: Usuario = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> None:
+    usuario = db.get(Usuario, usuario_id)
+    if usuario is None:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+    db.delete(usuario)
+    db.commit()
