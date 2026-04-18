@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router';
-import { useAppContext } from '../context/AppContext';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, LineChart, Line, BarChart, Bar, Legend } from 'recharts';
 import { Plus, LayoutGrid, Droplets, Thermometer, ArrowLeft, TrendingUp, Package, MapPin, Calendar } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
@@ -43,7 +42,6 @@ export const FarmDashboard = () => {
   const [plots, setPlots] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  console.log("HOLA")
 
   useEffect(() => {
     const fetchData = async () => {
@@ -53,12 +51,7 @@ export const FarmDashboard = () => {
         const farmData = await getFarmById(farmId!);
         setFarm(farmData);
 
-        const plotsData = await getParcelas();
-
-        const farmPlots = plotsData.filter(
-          (p) => String(p.granja_id) === String(farmId)
-        );
-
+        const farmPlots = await getParcelas({ granja_id: Number(farmId) });
         setPlots(farmPlots);
       } catch (error) {
         console.error(error);
@@ -87,12 +80,12 @@ export const FarmDashboard = () => {
 
   // Calcular estadísticas agregadas de todas las parcelas
   const totalArea = plots.reduce(
-    (sum, plot) => sum + ((plot.width ?? 0) * (plot.height ?? 0)),
+    (sum, plot) => sum + ((plot.tamx ?? 0) * (plot.tamy ?? 0)),
     0
   );
 
   const totalSensors = plots.reduce(
-    (sum, plot) => sum + (plot.sensors?.length ?? 0),
+    (sum, plot) => sum + (plot.sensores_count ?? 0),
     0
   );
 
@@ -269,15 +262,15 @@ export const FarmDashboard = () => {
             >
               <div className="flex justify-between items-start mb-4">
                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                  {plot.cropType}
+                  {plot.tipo_cultivo_nombre ?? 'Sin cultivo'}
                 </span>
-                <span className="text-xs text-gray-500">{plot.width}x{plot.height}m</span>
+                <span className="text-xs text-gray-500">{plot.tamx}x{plot.tamy}m</span>
               </div>
-              <h3 className="text-lg font-bold text-gray-900 mb-1 group-hover:text-green-600 transition-colors">{plot.name}</h3>
-              <p className="text-sm text-gray-500 mb-4">{plot.sensors?.length ?? 0} sensores instalados</p>
+              <h3 className="text-lg font-bold text-gray-900 mb-1 group-hover:text-green-600 transition-colors">{plot.nombre}</h3>
+              <p className="text-sm text-gray-500 mb-4">{plot.sensores_count ?? 0} sensores instalados</p>
 
               <div className="flex items-center justify-between text-xs border-t border-gray-100 pt-3">
-                <span className="text-gray-400">Creada {new Date(plot.createdAt).toLocaleDateString()}</span>
+                <span className="text-gray-400">Creada {new Date(plot.creado_en).toLocaleDateString()}</span>
                 <span className="font-medium text-green-600 group-hover:translate-x-1 transition-transform inline-block">&rarr;</span>
               </div>
             </div>

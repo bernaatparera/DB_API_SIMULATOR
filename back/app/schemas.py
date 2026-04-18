@@ -27,6 +27,7 @@ class GranjaRead(GranjaBase):
 
 class ParcelaBase(BaseModel):
     granja_id: int
+    tipo_cultivo_id: int | None = None
     nombre: str = Field(min_length=1, max_length=100)
     tamx: int = Field(gt=0)
     tamy: int = Field(gt=0)
@@ -38,6 +39,7 @@ class ParcelaCreate(ParcelaBase):
 
 class ParcelaUpdate(BaseModel):
     granja_id: int | None = None
+    tipo_cultivo_id: int | None = None
     nombre: str | None = Field(default=None, min_length=1, max_length=100)
     tamx: int | None = Field(default=None, gt=0)
     tamy: int | None = Field(default=None, gt=0)
@@ -47,6 +49,12 @@ class ParcelaRead(ParcelaBase):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
+    creado_en: datetime
+
+
+class ParcelaListRead(ParcelaRead):
+    sensores_count: int
+    tipo_cultivo_nombre: str | None = None
 
 
 class CasillaBase(BaseModel):

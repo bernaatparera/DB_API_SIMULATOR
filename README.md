@@ -58,6 +58,15 @@ python scripts/iot_simulator/main.py
 | 6 | Crear sensor e iniciar (crea granja + parcela + casilla + sensor) |
 | 7 | Salir |
 
+## Endpoints backend actualizados
+
+- `GET /api/v1/parcelas` ahora devuelve también:
+  - `creado_en`
+  - `sensores_count`
+  - `tipo_cultivo_nombre`
+- `POST /api/v1/parcelas` acepta `tipo_cultivo_id` (opcional)
+- `GET /api/v1/sensores` acepta filtro `parcela_id` (además de `casilla_id`)
+
 ## Variables de Entorno
 
 Ver archivo `.env` para configurar:

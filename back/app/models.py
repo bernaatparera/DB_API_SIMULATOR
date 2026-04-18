@@ -52,9 +52,11 @@ class Parcela(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     granja_id: Mapped[int] = mapped_column(ForeignKey("granja.id", ondelete="CASCADE"), nullable=False)
+    tipo_cultivo_id: Mapped[int | None] = mapped_column(ForeignKey("tipo_cultivo.id", ondelete="SET NULL"))
     nombre: Mapped[str] = mapped_column(String(100), nullable=False)
     tamx: Mapped[int] = mapped_column(Integer, nullable=False)
     tamy: Mapped[int] = mapped_column(Integer, nullable=False)
+    creado_en: Mapped[str] = mapped_column(TIMESTAMP(timezone=True), nullable=False, server_default=text("CURRENT_TIMESTAMP"))
 
 
 class Casilla(Base):

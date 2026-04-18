@@ -4,7 +4,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import Sensor
+from app.models import Casilla, Sensor
 from app.schemas import SensorCreate, SensorRead, SensorUpdate
 
 router = APIRouter(prefix="/sensores", tags=["sensores"])
@@ -13,11 +13,14 @@ router = APIRouter(prefix="/sensores", tags=["sensores"])
 @router.get("/", response_model=list[SensorRead], summary="Listar sensores")
 def list_sensores(
     casilla_id: int | None = Query(default=None, ge=1),
+    parcela_id: int | None = Query(default=None, ge=1),
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
     db: Session = Depends(get_db),
 ) -> list[Sensor]:
     stmt = select(Sensor)
+    if parcela_id is not None:
+        stmt = stmt.join(Casilla, Sensor.casilla_id == Casilla.id).where(Casilla.parcela_id == parcela_id)
     if casilla_id is not None:
         stmt = stmt.where(Sensor.casilla_id == casilla_id)
     stmt = stmt.offset(skip).limit(limit)

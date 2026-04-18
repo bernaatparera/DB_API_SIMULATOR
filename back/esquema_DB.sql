@@ -53,9 +53,11 @@ CREATE TABLE USUARIO_GRANJA (
 CREATE TABLE PARCELA (
     id SERIAL PRIMARY KEY,
     granja_id INT NOT NULL REFERENCES GRANJA(id) ON DELETE CASCADE,
+    tipo_cultivo_id INT REFERENCES TIPO_CULTIVO(id) ON DELETE SET NULL,
     nombre VARCHAR(100) NOT NULL,
     tamX INT NOT NULL CHECK (tamX > 0), -- Columnas de la malla
-    tamY INT NOT NULL CHECK (tamY > 0)  -- Filas de la malla
+    tamY INT NOT NULL CHECK (tamY > 0),  -- Filas de la malla
+    creado_en TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE CASILLA (

@@ -255,19 +255,14 @@ def start_simulator_menu():
 
 
 def create_and_start_sensor_menu():
-    """Vista interactiva: Bootstrapping de un entorno completo para pruebas"""
-    print("\n[+] CREAR ENTORNO, SENSOR E INICIAR")
+    """Crea una estructura minima y lanza un sensor con configuracion por defecto"""
+    print("\n[+] ARRANQUE RAPIDO IoT")
     print("-" * 40)
+    print(f"[INFO] Se creara automaticamente granja/parcela/casilla/sensor a {config.default_interval_seconds}s")
 
-    tipo = input("Categoria del sensor [temperatura]: ").strip() or "temperatura"
-    prefijo = input("Prefijo de referencia [sim]: ").strip() or "sim"
-    interval_str = input(f"Frecuencia (segundos) [{config.default_interval_seconds}]: ").strip()
-    
-    try:
-        interval = float(interval_str) if interval_str else config.default_interval_seconds
-        interval = max(config.min_interval_seconds, min(config.max_interval_seconds, interval))
-    except ValueError:
-        interval = config.default_interval_seconds
+    tipo = "temperatura"
+    prefijo = "sim"
+    interval = config.default_interval_seconds
 
     # Generar hashes unicos para evitar colisiones
     unique = uuid.uuid4().hex[:8]
@@ -299,6 +294,10 @@ def create_and_start_sensor_menu():
 
     if manager.start_simulator(sensor, interval):
         print(f"[OK] Despliegue exitoso | ID: {sensor.id} | Ref: {sensor.numref} | Freq: {interval}s")
+        print(
+            f"[INFO] Ubicacion: granja_id={granja.id} ({granja.nombre}) | "
+            f"parcela_id={parcela.id} ({parcela.nombre}) | casilla_id={casilla.id}"
+        )
     else:
         print("[WARN] Entorno creado, pero el motor de simulacion no pudo iniciar.")
 

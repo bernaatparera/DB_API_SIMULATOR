@@ -6,9 +6,10 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import Casilla, Medicion, Parcela, Sensor
+from app.models import Casilla, Medicion, Parcela, Sensor, TipoCultivo
 from app.schemas import (
     ParcelaCreate,
+    ParcelaListRead,
     ParcelaMedicionPage,
     ParcelaMedicionRead,
     ParcelaRead,
@@ -18,18 +19,57 @@ from app.schemas import (
 router = APIRouter(prefix="/parcelas", tags=["parcelas"])
 
 
-@router.get("/", response_model=list[ParcelaRead], summary="Listar parcelas")
+@router.get("/", response_model=list[ParcelaListRead], summary="Listar parcelas")
 def list_parcelas(
     granja_id: int | None = Query(default=None, ge=1),
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
     db: Session = Depends(get_db),
-) -> list[Parcela]:
-    stmt = select(Parcela)
+) -> list[ParcelaListRead]:
+    sensores_count = func.count(Sensor.id)
+    stmt = (
+        select(
+            Parcela.id,
+            Parcela.granja_id,
+            Parcela.tipo_cultivo_id,
+            Parcela.nombre,
+            Parcela.tamx,
+            Parcela.tamy,
+            Parcela.creado_en,
+            TipoCultivo.nombre.label("tipo_cultivo_nombre"),
+            sensores_count.label("sensores_count"),
+        )
+        .outerjoin(Casilla, Casilla.parcela_id == Parcela.id)
+        .outerjoin(Sensor, Sensor.casilla_id == Casilla.id)
+        .outerjoin(TipoCultivo, TipoCultivo.id == Parcela.tipo_cultivo_id)
+        .group_by(
+            Parcela.id,
+            Parcela.granja_id,
+            Parcela.tipo_cultivo_id,
+            Parcela.nombre,
+            Parcela.tamx,
+            Parcela.tamy,
+            Parcela.creado_en,
+            TipoCultivo.nombre,
+        )
+    )
     if granja_id is not None:
         stmt = stmt.where(Parcela.granja_id == granja_id)
-    stmt = stmt.offset(skip).limit(limit)
-    return list(db.scalars(stmt).all())
+    rows = db.execute(stmt.offset(skip).limit(limit)).all()
+    return [
+        ParcelaListRead(
+            id=row.id,
+            granja_id=row.granja_id,
+            tipo_cultivo_id=row.tipo_cultivo_id,
+            nombre=row.nombre,
+            tamx=row.tamx,
+            tamy=row.tamy,
+            creado_en=row.creado_en,
+            sensores_count=row.sensores_count,
+            tipo_cultivo_nombre=row.tipo_cultivo_nombre,
+        )
+        for row in rows
+    ]
 
 
 @router.get("/{parcela_id}", response_model=ParcelaRead, summary="Obtener parcela por ID")
@@ -42,6 +82,13 @@ def get_parcela(parcela_id: int, db: Session = Depends(get_db)) -> Parcela:
 
 @router.post("/", response_model=ParcelaRead, status_code=201, summary="Crear parcela")
 def create_parcela(payload: ParcelaCreate, db: Session = Depends(get_db)) -> Parcela:
+    if payload.tipo_cultivo_id is not None:
+        tipo_cultivo = db.get(TipoCultivo, payload.tipo_cultivo_id)
+        if tipo_cultivo is None:
+            raise HTTPException(status_code=400, detail="Tipo de cultivo no encontrado")
+        if tipo_cultivo.granja_id != payload.granja_id:
+            raise HTTPException(status_code=400, detail="El tipo de cultivo no pertenece a la granja")
+
     parcela = Parcela(**payload.model_dump())
     db.add(parcela)
     try:
@@ -58,6 +105,13 @@ def update_parcela(parcela_id: int, payload: ParcelaCreate, db: Session = Depend
     parcela = db.get(Parcela, parcela_id)
     if parcela is None:
         raise HTTPException(status_code=404, detail="Parcela no encontrada")
+
+    if payload.tipo_cultivo_id is not None:
+        tipo_cultivo = db.get(TipoCultivo, payload.tipo_cultivo_id)
+        if tipo_cultivo is None:
+            raise HTTPException(status_code=400, detail="Tipo de cultivo no encontrado")
+        if tipo_cultivo.granja_id != payload.granja_id:
+            raise HTTPException(status_code=400, detail="El tipo de cultivo no pertenece a la granja")
 
     for key, value in payload.model_dump().items():
         setattr(parcela, key, value)
@@ -80,6 +134,14 @@ def patch_parcela(parcela_id: int, payload: ParcelaUpdate, db: Session = Depends
     updates = payload.model_dump(exclude_unset=True)
     if not updates:
         raise HTTPException(status_code=400, detail="No se enviaron campos para actualizar")
+
+    new_granja_id = updates.get("granja_id", parcela.granja_id)
+    if "tipo_cultivo_id" in updates and updates["tipo_cultivo_id"] is not None:
+        tipo_cultivo = db.get(TipoCultivo, updates["tipo_cultivo_id"])
+        if tipo_cultivo is None:
+            raise HTTPException(status_code=400, detail="Tipo de cultivo no encontrado")
+        if tipo_cultivo.granja_id != new_granja_id:
+            raise HTTPException(status_code=400, detail="El tipo de cultivo no pertenece a la granja")
 
     for key, value in updates.items():
         setattr(parcela, key, value)
