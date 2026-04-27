@@ -8,20 +8,23 @@ import { NewPlotForm } from './components/NewPlotForm';
 import { PlotDashboard } from './components/PlotDashboard';
 import { RegisterPage } from './components/RegisterPage';
 import { NewFarmForm } from './components/NewFarmForm';
+import { LandingPage } from './components/LandingPage';
 
 export const router = createBrowserRouter([
   {
     path: '/',
+    element: <LandingPage />,
+  },
+  {
     element: <Layout />,
     children: [
-      { index: true, element: <Navigate to="/farms" replace /> },
-      { path: 'login', element: <Login /> },
-      { path: 'register', element: <RegisterPage /> },
-      { path: 'farms', element: <FarmList /> },
-      { path: "/farms/new", element: <NewFarmForm /> },
-      { path: 'farms/:farmId', element: <FarmDashboard /> },
-      { path: 'farms/:farmId/plots/new', element: <NewPlotForm /> },
-      { path: 'farms/:farmId/plots/:plotId', element: <PlotDashboard /> },
+      { path: '/login', element: <Login /> },
+      { path: '/register', element: <RegisterPage /> },
+      { path: '/farms', element: <FarmList /> },
+      { path: '/farms/new', element: <NewFarmForm /> },
+      { path: '/farms/:farmId', element: <FarmDashboard /> },
+      { path: '/farms/:farmId/plots/new', element: <NewPlotForm /> },
+      { path: '/farms/:farmId/plots/:plotId', element: <PlotDashboard /> },
     ],
   },
 ]);

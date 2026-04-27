@@ -21,3 +21,21 @@ export const createFarm = async (data: CreateFarmRequest): Promise<Farm> => {
     body: JSON.stringify(data),
   });
 };
+
+// PATCH editar granja
+export const updateFarm = async (id: number, data: Partial<CreateFarmRequest>): Promise<Farm> => {
+  return apiRequest(`/granjas/${id}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(data),
+  });
+};
+
+// DELETE eliminar granja
+export const deleteFarm = async (id: number): Promise<{ message: string }> => {
+  return apiRequest(`/granjas/${id}`, {
+    method: "DELETE",
+  });
+};

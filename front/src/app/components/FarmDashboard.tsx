@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, LineChart, Line, BarChart, Bar, Legend } from 'recharts';
-import { Plus, LayoutGrid, Droplets, Thermometer, ArrowLeft, TrendingUp, Package, MapPin, Calendar } from 'lucide-react';
+import { Plus, LayoutGrid, Droplets, Thermometer, ArrowLeft, TrendingUp, Package, MapPin, Calendar, Edit3 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { getFarmById } from '../services/farmService';
 import { getParcelas } from '../services/plotService';
+import EditFarmForm from './EditFarmForm';
+import { useAppContext } from '../context/AppContext';
 
 const mockData = [
   { name: 'Lun', humedad: 4000, temperatura: 2400 },
@@ -37,11 +39,13 @@ const cropDistribution = [
 export const FarmDashboard = () => {
   const navigate = useNavigate();
   const { farmId } = useParams<{ farmId: string }>();
+  const { updateFarmInContext } = useAppContext();
 
   const [farm, setFarm] = useState<any | null>(null);
   const [plots, setPlots] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -97,17 +101,40 @@ export const FarmDashboard = () => {
 
   return (
     <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+      {isEditing && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <EditFarmForm 
+            farm={farm}
+            onSuccess={(updatedFarm) => {
+              setFarm(updatedFarm);
+              updateFarmInContext(updatedFarm);
+              setIsEditing(false);
+            }}
+            onCancel={() => setIsEditing(false)}
+          />
+        </div>
+      )}
+
       <div className="flex items-center text-sm font-medium text-gray-500 hover:text-gray-900 mb-8 cursor-pointer w-fit" onClick={() => navigate('/farms')}>
         <ArrowLeft className="w-4 h-4 mr-1" />
         Volver a mis granjas
       </div>
 
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">{farm.nombre}</h1>
-          <p className="mt-1 text-sm text-gray-500">
-            {farm.ubicacion_geo} · {plots.length} parcelas activas
-          </p>
+        <div className="flex items-center gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">{farm.nombre}</h1>
+            <p className="mt-1 text-sm text-gray-500">
+              {farm.ubicacion_geo} · {plots.length} parcelas activas
+            </p>
+          </div>
+          <button 
+            onClick={() => setIsEditing(true)} 
+            className="p-2 text-gray-400 hover:text-green-600 rounded-full hover:bg-green-50 transition-colors"
+            title="Editar Granja"
+          >
+            <Edit3 className="w-5 h-5" />
+          </button>
         </div>
         <button
           onClick={() => navigate(`/farms/${farmId}/plots/new`)}

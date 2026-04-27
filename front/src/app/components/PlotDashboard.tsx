@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router';
-import { ArrowLeft, Droplet, Activity, RefreshCw, MapPin, Calendar, Cpu, Database, Layers, Plus } from 'lucide-react';
+import { ArrowLeft, Droplet, Activity, RefreshCw, MapPin, Calendar, Cpu, Database, Layers, Plus, Edit3 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Badge } from "./ui/badge";
@@ -13,6 +13,7 @@ import { MeasurementsByPlotResponse } from '../types/measurement';
 import { CasillaRead } from '../types/cell';
 import { SensorRead } from '../types/sensor';
 import { ParcelaRead } from '../types/plot';
+import EditPlotForm from './EditPlotForm';
 
 const defaultSensorForm = {
   numref: '',
@@ -91,6 +92,7 @@ export const PlotDashboard = () => {
   const [sensorForm, setSensorForm] = useState(defaultSensorForm);
   const [sensorFormError, setSensorFormError] = useState<string | null>(null);
   const [sensorActionMessage, setSensorActionMessage] = useState<string | null>(null);
+  const [isEditingPlot, setIsEditingPlot] = useState(false);
 
   const plotIdAsNumber = Number(plotId);
 
@@ -355,6 +357,19 @@ export const PlotDashboard = () => {
 
   return (
     <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+      {isEditingPlot && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <EditPlotForm 
+            plot={plot}
+            onSuccess={(updatedPlot) => {
+              setPlot(updatedPlot);
+              setIsEditingPlot(false);
+            }}
+            onCancel={() => setIsEditingPlot(false)}
+          />
+        </div>
+      )}
+
       <div className="flex items-center text-sm font-medium text-gray-500 hover:text-gray-900 mb-8 cursor-pointer w-fit" onClick={handleBack}>
         <ArrowLeft className="w-4 h-4 mr-1" />
         Volver a la granja
@@ -367,6 +382,13 @@ export const PlotDashboard = () => {
             <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
               Parcela #{plot.id}
             </Badge>
+            <button 
+              onClick={() => setIsEditingPlot(true)} 
+              className="p-1.5 text-gray-400 hover:text-green-600 rounded-full hover:bg-green-50 transition-colors"
+              title="Editar Parcela"
+            >
+              <Edit3 className="w-5 h-5" />
+            </button>
           </div>
           <p className="mt-1 text-sm text-gray-500">
             Cuadricula {plot.tamx}x{plot.tamy} | Granja {plot.granja_id} | {installedSensors} sensores instalados

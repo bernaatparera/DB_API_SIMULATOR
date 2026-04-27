@@ -31,3 +31,12 @@ export const createParcela = async (data: ParcelaCreate): Promise<ParcelaRead> =
 export const getMeasurementsByPlot = async (plotId: number): Promise<MeasurementsByPlotResponse> => {
   return getMeasurementsByPlotFromMeasurementService(plotId);
 };
+
+// PATCH editar parcela
+export const updateParcela = async (parcela_id: number, data: Partial<ParcelaCreate>): Promise<ParcelaRead> => {
+  return apiRequest(`/parcelas/${parcela_id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+};

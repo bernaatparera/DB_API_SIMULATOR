@@ -4,6 +4,7 @@ export interface ParcelaCreate {
   nombre: string; // min 1, max 100
   tamx: number;   // > 0
   tamy: number;   // > 0
+  tipo_cultivo?: string | null;
 }
 
 export interface ParcelaRead {
@@ -12,6 +13,8 @@ export interface ParcelaRead {
   nombre: string;
   tamx: number;
   tamy: number;
+  tipo_cultivo_nombre?: string | null;
+  tipo_cultivo?: string | null;
 }
 
 export interface ListParcelasParams {

@@ -22,6 +22,7 @@ type AppContextType = {
   farms: Farm[];
   plots: Plot[];
   addFarm: (farm: CreateFarmRequest) => Promise<Farm>;
+  updateFarmInContext: (updatedFarm: Farm) => void;
   addPlot: (plot: Omit<Plot, 'id' | 'cells' | 'sensors' | 'createdAt'>) => void;
   updateCellState: (plotId: string, x: number, y: number, state: CellState) => void;
 };
@@ -83,6 +84,12 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     return newFarm;
   };
 
+  const updateFarmInContext = (updatedFarm: Farm) => {
+    setFarms(currentFarms => 
+      currentFarms.map(f => (f.id === updatedFarm.id ? updatedFarm : f))
+    );
+  };
+
   // plots (de momento fake, luego se conectan a API)
   const addPlot = (plotData: Omit<Plot, 'id' | 'cells' | 'sensors' | 'createdAt'>) => {
     const area = plotData.width * plotData.height;
@@ -129,7 +136,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AppContext.Provider value={{ farms, plots, addFarm, addPlot, updateCellState }}>
+    <AppContext.Provider value={{ farms, plots, addFarm, updateFarmInContext, addPlot, updateCellState }}>
       {children}
     </AppContext.Provider>
   );

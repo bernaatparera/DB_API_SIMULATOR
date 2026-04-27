@@ -12,6 +12,7 @@ const CROP_TYPES = [
   { id: 'zanahoria', label: 'Zanahoria', icon: '🥕' },
   { id: 'patata', label: 'Patata', icon: '🥔' },
   { id: 'cebolla', label: 'Cebolla', icon: '🧅' },
+  { id: 'otro', label: 'Otro...', icon: '🌱' },
 ];
 
 export const NewPlotForm = () => {
@@ -23,6 +24,7 @@ export const NewPlotForm = () => {
   const [width, setWidth] = useState<number>(3);
   const [height, setHeight] = useState<number>(3);
   const [selectedCrop, setSelectedCrop] = useState<string>('');
+  const [customCropValue, setCustomCropValue] = useState<string>('');
 
   const estimatedSensors = Math.max(1, Math.floor((width * height) / 4));
 
@@ -31,6 +33,13 @@ export const NewPlotForm = () => {
 
     if (!farmId || !name) return;
 
+    const finalCrop = selectedCrop === "Otro..." ? customCropValue.trim() : selectedCrop;
+
+    if (!finalCrop) {
+      // Should not happen due to disabled state, but for safety
+      return;
+    }
+
     try {
       // TODO: guardar tipo de cultivo cuando backend lo soporte. Y que añada tmb fecha de creación etc..
       await createParcela({
@@ -38,6 +47,8 @@ export const NewPlotForm = () => {
         nombre: name,
         tamx: width,
         tamy: height,
+        // @ts-ignore
+        tipo_cultivo: finalCrop,
       });
 
       navigate(`/farms/${farmId}`);
@@ -147,6 +158,19 @@ export const NewPlotForm = () => {
                   </button>
                 ))}
               </div>
+              {selectedCrop === "Otro..." && (
+                <div className="mt-3 p-4 bg-gray-50 border border-gray-200 rounded-xl animate-in fade-in slide-in-from-top-2">
+                  <label className="block text-xs font-medium text-gray-600 mb-2">Escribe el nombre del cultivo:</label>
+                  <input
+                    type="text"
+                    placeholder="Ej. Pimiento, Berenjena, etc."
+                    value={customCropValue}
+                    onChange={(e) => setCustomCropValue(e.target.value)}
+                    className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
+                    autoFocus
+                  />
+                </div>
+              )}
             </div>
           </div>
 

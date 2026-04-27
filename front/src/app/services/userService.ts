@@ -21,3 +21,12 @@ export const createUsuario = async (data: UsuarioCreate): Promise<UsuarioRead> =
     body: JSON.stringify(data),
   });
 };
+
+// PATCH editar usuario
+export const updateUsuario = async (usuario_id: string, data: Partial<UsuarioRead>): Promise<UsuarioRead> => {
+  return apiRequest(`/usuarios/${usuario_id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+};
