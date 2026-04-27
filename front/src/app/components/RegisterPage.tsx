@@ -51,8 +51,12 @@ export function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-green-50">
-      <Card className="w-full max-w-md">
+    <div 
+      className="min-h-screen flex items-center justify-center p-4 bg-cover bg-center relative"
+      style={{ backgroundImage: "url('/img/background_image.png')" }}
+    >
+      <div className="absolute inset-0 bg-white/30 backdrop-blur-md"></div>
+      <Card className="w-full max-w-md relative z-10 bg-white/95 backdrop-blur-sm border-white/40 shadow-xl">
         <CardHeader className="text-center">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-100 mb-4 mx-auto">
             <Sprout className="w-8 h-8 text-green-600" />
