@@ -27,8 +27,8 @@ export const LandingPage = () => {
         {/* Enlaces futuros */}
         <nav className="hidden md:flex items-center gap-8 text-white/80 text-sm font-medium">
           <a href="#" className="hover:text-white transition-colors drop-shadow-md">Inicio</a>
-          <a href="#" className="hover:text-white transition-colors drop-shadow-md">Nuestra Historia</a>
-          <a href="#" className="hover:text-white transition-colors drop-shadow-md">Servicios</a>
+          <span onClick={() => navigate('/nuestra-historia')} className="hover:text-white transition-colors drop-shadow-md cursor-pointer">Nuestra Historia</span>
+          <span onClick={() => navigate('/servicios')} className="hover:text-white transition-colors drop-shadow-md cursor-pointer">Servicios</span>
         </nav>
       </header>
 

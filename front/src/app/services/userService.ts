@@ -30,3 +30,11 @@ export const updateUsuario = async (usuario_id: string, data: Partial<UsuarioRea
     body: JSON.stringify(data),
   });
 };
+
+export const changePassword = async (usuario_id: string, newPassword: string): Promise<UsuarioRead> => {
+  return apiRequest(`/usuarios/${usuario_id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ hash_contrasena: newPassword }),
+  });
+};

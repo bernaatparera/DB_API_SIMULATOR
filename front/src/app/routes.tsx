@@ -9,6 +9,9 @@ import { PlotDashboard } from './components/PlotDashboard';
 import { RegisterPage } from './components/RegisterPage';
 import { NewFarmForm } from './components/NewFarmForm';
 import { LandingPage } from './components/LandingPage';
+import { PerfilPage } from './components/PerfilPage';
+import { NuestraHistoriaPage } from './components/NuestraHistoriaPage';
+import { ServiciosPage } from './components/ServiciosPage';
 
 export const router = createBrowserRouter([
   {
@@ -16,9 +19,18 @@ export const router = createBrowserRouter([
     element: <LandingPage />,
   },
   {
+    path: '/nuestra-historia',
+    element: <NuestraHistoriaPage />,
+  },
+  {
+    path: '/servicios',
+    element: <ServiciosPage />,
+  },
+  {
     element: <Layout />,
     children: [
       { path: '/login', element: <Login /> },
+      { path: '/perfil', element: <PerfilPage /> },
       { path: '/register', element: <RegisterPage /> },
       { path: '/farms', element: <FarmList /> },
       { path: '/farms/new', element: <NewFarmForm /> },

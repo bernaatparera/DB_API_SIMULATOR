@@ -1,11 +1,12 @@
 import React from 'react';
-import { Outlet, Navigate, useLocation } from 'react-router';
+import { Outlet, Navigate, useLocation, useNavigate } from 'react-router';
 import { useAuth } from '../context/AuthContext';
 import { Sprout, LogOut, User as UserIcon } from 'lucide-react';
 
 export const Layout = () => {
   const { user, logout } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
 
   // 1. Definimos cuáles son las rutas públicas donde no exigimos estar logueado
   const isPublicRoute = location.pathname === '/login' || location.pathname === '/register';
@@ -34,9 +35,12 @@ export const Layout = () => {
               </div>
             </div>
             <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-gray-50 border border-gray-200 text-sm font-medium text-gray-700">
+              <div
+                onClick={() => navigate('/perfil')}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-gray-50 border border-gray-200 text-sm font-medium text-gray-700 cursor-pointer hover:bg-gray-100 transition-colors"
+              >
                 <UserIcon className="w-4 h-4 text-gray-500" />
-                {user?.email}
+                {user?.nombre} {user?.apellidos}
               </div>
               <button 
                 onClick={logout}
