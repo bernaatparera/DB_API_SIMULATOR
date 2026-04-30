@@ -32,6 +32,11 @@ export const getMeasurementsByPlot = async (plotId: number): Promise<Measurement
   return getMeasurementsByPlotFromMeasurementService(plotId);
 };
 
+// DELETE eliminar parcela
+export const deleteParcela = async (parcela_id: number): Promise<void> => {
+  return apiRequest(`/parcelas/${parcela_id}`, { method: "DELETE" });
+};
+
 // PATCH editar parcela
 export const updateParcela = async (parcela_id: number, data: Partial<ParcelaCreate>): Promise<ParcelaRead> => {
   return apiRequest(`/parcelas/${parcela_id}`, {

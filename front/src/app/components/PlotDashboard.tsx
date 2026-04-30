@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router';
-import { ArrowLeft, Droplet, Activity, RefreshCw, MapPin, Calendar, Cpu, Database, Layers, Plus, Edit3 } from 'lucide-react';
+import { ArrowLeft, Droplet, Activity, RefreshCw, MapPin, Calendar, Cpu, Database, Layers, Plus, Edit3, Trash2 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Badge } from "./ui/badge";
@@ -8,7 +8,7 @@ import { Input } from "./ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "./ui/dialog";
 import { getMeasurementsByPlot, getParcelaById } from '../services/plotService';
 import { getCasillas, createCasilla } from '../services/cellService';
-import { createSensor, getSensores } from '../services/sensorService';
+import { createSensor, deleteSensor, getSensores } from '../services/sensorService';
 import { MeasurementsByPlotResponse } from '../types/measurement';
 import { CasillaRead } from '../types/cell';
 import { SensorRead } from '../types/sensor';
@@ -93,6 +93,8 @@ export const PlotDashboard = () => {
   const [sensorFormError, setSensorFormError] = useState<string | null>(null);
   const [sensorActionMessage, setSensorActionMessage] = useState<string | null>(null);
   const [isEditingPlot, setIsEditingPlot] = useState(false);
+  const [isDeleteSensorDialogOpen, setIsDeleteSensorDialogOpen] = useState(false);
+  const [isDeletingSensorId, setIsDeletingSensorId] = useState<number | null>(null);
 
   const plotIdAsNumber = Number(plotId);
 
@@ -352,6 +354,21 @@ export const PlotDashboard = () => {
       setSensorFormError(requestError instanceof Error ? requestError.message : "No se pudo crear el sensor.");
     } finally {
       setIsSubmittingSensor(false);
+    }
+  };
+
+  const handleDeleteSensor = async (sensorId: number) => {
+    setIsDeletingSensorId(sensorId);
+    try {
+      await deleteSensor(sensorId);
+      setSensors((current) => current.filter((s) => s.id !== sensorId));
+      setSensorActionMessage(`Sensor eliminado correctamente.`);
+      setIsDeleteSensorDialogOpen(false);
+    } catch (requestError) {
+      console.error(requestError);
+      setSensorActionMessage('Error al eliminar el sensor.');
+    } finally {
+      setIsDeletingSensorId(null);
     }
   };
 
@@ -628,6 +645,16 @@ export const PlotDashboard = () => {
                   <Cpu className="w-4 h-4 mr-2" />
                   {selectedCellSensors.length > 0 ? 'Anadir otro sensor' : 'Anadir sensor en esta celda'}
                 </button>
+
+                {selectedCellSensors.length > 0 && (
+                  <button
+                    onClick={() => setIsDeleteSensorDialogOpen(true)}
+                    className="w-full inline-flex items-center justify-center px-4 py-2.5 rounded-lg bg-red-50 text-red-700 font-medium hover:bg-red-100 border border-red-200"
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Eliminar sensor
+                  </button>
+                )}
               </div>
             ) : (
               <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50 px-4 py-6 text-sm text-gray-500 text-center">
@@ -790,6 +817,53 @@ export const PlotDashboard = () => {
           </CardContent>
         </Card>
       </div>
+
+      <Dialog
+        open={isDeleteSensorDialogOpen}
+        onOpenChange={(open) => setIsDeleteSensorDialogOpen(open)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Eliminar sensor</DialogTitle>
+            <DialogDescription>
+              {selectedCell
+                ? `Selecciona el sensor que quieres eliminar de la celda (${selectedCell.x}, ${selectedCell.y}).`
+                : 'Selecciona un sensor para eliminar.'}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-2 py-2">
+            {selectedCellSensors.map((sensor) => (
+              <div key={sensor.id} className="flex items-center justify-between rounded-lg border border-gray-200 px-3 py-2">
+                <div>
+                  <p className="text-sm font-medium text-gray-900">{sensor.numref}</p>
+                  <p className="text-xs text-gray-500">
+                    {sensor.tipo}{sensor.fabricante ? ` | ${sensor.fabricante}` : ''}
+                  </p>
+                </div>
+                <button
+                  onClick={() => void handleDeleteSensor(sensor.id)}
+                  disabled={isDeletingSensorId === sensor.id}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-red-50 px-3 py-1.5 text-sm font-medium text-red-700 hover:bg-red-100 disabled:opacity-50 disabled:cursor-not-allowed border border-red-200"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  {isDeletingSensorId === sensor.id ? 'Eliminando...' : 'Eliminar'}
+                </button>
+              </div>
+            ))}
+          </div>
+
+          <DialogFooter>
+            <button
+              type="button"
+              onClick={() => setIsDeleteSensorDialogOpen(false)}
+              className="inline-flex items-center justify-center rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            >
+              Cerrar
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog
         open={isSensorDialogOpen}

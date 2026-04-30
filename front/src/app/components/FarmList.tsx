@@ -1,14 +1,18 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { useAppContext } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
-import { Warehouse, Plus, LayoutGrid } from 'lucide-react';
+import { Warehouse, Plus, LayoutGrid, Trash2 } from 'lucide-react';
 import { getParcelas } from '../services/plotService';
+import { deleteFarm } from '../services/farmService';
+import { ConfirmDialog } from './ConfirmDialog';
 import { ParcelaRead } from '../types/plot';
 
 export const FarmList = () => {
-  const { farms } = useAppContext();
+  const { farms, removeFarmFromContext } = useAppContext();
   const [allPlots, setAllPlots] = useState<ParcelaRead[]>([]);
+  const [pendingDeleteFarmId, setPendingDeleteFarmId] = useState<number | null>(null);
+  const [isDeletingFarm, setIsDeletingFarm] = useState(false);
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -24,8 +28,30 @@ export const FarmList = () => {
     fetchPlots();
   }, []);
 
+  const handleDeleteFarm = async () => {
+    if (!pendingDeleteFarmId) return;
+    setIsDeletingFarm(true);
+    try {
+      await deleteFarm(pendingDeleteFarmId);
+      removeFarmFromContext(pendingDeleteFarmId);
+      setPendingDeleteFarmId(null);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsDeletingFarm(false);
+    }
+  };
+
   return (
     <div className="max-w-6xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+      <ConfirmDialog
+        open={pendingDeleteFarmId !== null}
+        title="Eliminar granja"
+        description="¿Seguro que quieres eliminar esta granja? Esta acción no se puede deshacer."
+        loading={isDeletingFarm}
+        onConfirm={() => void handleDeleteFarm()}
+        onCancel={() => setPendingDeleteFarmId(null)}
+      />
       <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Mis Granjas</h1>
@@ -77,7 +103,17 @@ export const FarmList = () => {
                     <div className="p-3 bg-green-100 text-green-600 rounded-lg group-hover:bg-green-600 group-hover:text-white transition-colors">
                       <Warehouse className="w-6 h-6" />
                     </div>
-                    <p className="text-sm text-gray-500">{farm.ubicacion_geo}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm text-gray-500">{farm.ubicacion_geo}</p>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setPendingDeleteFarmId(farm.id); }}
+                        disabled={isDeletingFarm}
+                        className="p-1 rounded text-red-400 hover:text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
+                        title="Eliminar granja"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
 
                   <h3 className="text-xl font-bold text-gray-900 mb-2">

@@ -1,11 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, LineChart, Line, BarChart, Bar, Legend } from 'recharts';
-import { Plus, LayoutGrid, Droplets, Thermometer, ArrowLeft, TrendingUp, Package, MapPin, Calendar, Edit3 } from 'lucide-react';
+import { Plus, LayoutGrid, Droplets, Thermometer, ArrowLeft, TrendingUp, Package, MapPin, Calendar, Edit3, Trash2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { getFarmById } from '../services/farmService';
-import { getParcelas } from '../services/plotService';
+import { deleteParcela, getParcelas } from '../services/plotService';
 import EditFarmForm from './EditFarmForm';
+import { ConfirmDialog } from './ConfirmDialog';
 import { useAppContext } from '../context/AppContext';
 
 const mockData = [
@@ -46,6 +47,8 @@ export const FarmDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [pendingDeletePlotId, setPendingDeletePlotId] = useState<number | null>(null);
+  const [isDeletingPlot, setIsDeletingPlot] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -67,6 +70,20 @@ export const FarmDashboard = () => {
 
     if (farmId) fetchData();
   }, [farmId]);
+
+  const handleDeletePlot = async () => {
+    if (!pendingDeletePlotId) return;
+    setIsDeletingPlot(true);
+    try {
+      await deleteParcela(pendingDeletePlotId);
+      setPlots((current) => current.filter((p) => p.id !== pendingDeletePlotId));
+      setPendingDeletePlotId(null);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsDeletingPlot(false);
+    }
+  };
 
   if (loading) {
     return <div className="p-8 text-center text-gray-500">Cargando...</div>;
@@ -101,6 +118,15 @@ export const FarmDashboard = () => {
 
   return (
     <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+      <ConfirmDialog
+        open={pendingDeletePlotId !== null}
+        title="Eliminar parcela"
+        description="¿Seguro que quieres eliminar esta parcela? Esta acción no se puede deshacer."
+        loading={isDeletingPlot}
+        onConfirm={() => void handleDeletePlot()}
+        onCancel={() => setPendingDeletePlotId(null)}
+      />
+
       {isEditing && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
           <EditFarmForm 
@@ -291,7 +317,17 @@ export const FarmDashboard = () => {
                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                   {plot.tipo_cultivo_nombre ?? 'Sin cultivo'}
                 </span>
-                <span className="text-xs text-gray-500">{plot.tamx}x{plot.tamy}m</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-500">{plot.tamx}x{plot.tamy}m</span>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setPendingDeletePlotId(plot.id); }}
+                    disabled={isDeletingPlot}
+                    className="p-1 rounded text-red-400 hover:text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
+                    title="Eliminar parcela"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               </div>
               <h3 className="text-lg font-bold text-gray-900 mb-1 group-hover:text-green-600 transition-colors">{plot.nombre}</h3>
               <p className="text-sm text-gray-500 mb-4">{plot.sensores_count ?? 0} sensores instalados</p>

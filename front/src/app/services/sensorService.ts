@@ -21,3 +21,7 @@ export const createSensor = async (data: SensorCreate): Promise<SensorRead> => {
     body: JSON.stringify(data),
   });
 };
+
+export const deleteSensor = async (sensor_id: number): Promise<void> => {
+  return apiRequest(`/sensores/${sensor_id}`, { method: "DELETE" });
+};
