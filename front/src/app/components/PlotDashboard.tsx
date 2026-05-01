@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router';
 import { ArrowLeft, Droplet, Activity, RefreshCw, MapPin, Calendar, Cpu, Database, Layers, Plus, Edit3, Trash2 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
@@ -96,9 +96,15 @@ export const PlotDashboard = () => {
   const [isDeleteSensorDialogOpen, setIsDeleteSensorDialogOpen] = useState(false);
   const [isDeletingSensorId, setIsDeletingSensorId] = useState<number | null>(null);
 
+  // Estado y refs del polling
+  const [isPolling, setIsPolling] = useState(false);
+  const pollingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const POLLING_INTERVAL_MS = 10_000; // 10 segundos
+
   const plotIdAsNumber = Number(plotId);
 
-  const loadPlotDashboard = async (showRefreshingState = false) => {
+  // Carga completa: parcela + casillas + sensores + mediciones
+  const loadPlotDashboard = useCallback(async (showRefreshingState = false) => {
     if (!plotId || Number.isNaN(plotIdAsNumber)) {
       setError("El id de la parcela no es valido");
       setLoading(false);
@@ -140,11 +146,51 @@ export const PlotDashboard = () => {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [plotIdAsNumber, plotId]);
 
+  // Poll silencioso: solo refresca mediciones sin tocar el estado de carga ni
+  // resetear la selección de celda. Los gráficos y KPIs se actualizan solos.
+  const pollMeasurements = useCallback(async () => {
+    if (!plotIdAsNumber || Number.isNaN(plotIdAsNumber)) return;
+    try {
+      const measurementsData = await getMeasurementsByPlot(plotIdAsNumber);
+      setMeasurementsResponse(measurementsData);
+    } catch {
+      // Fallo silencioso: no interrumpimos la UI si un poll puntual falla
+    }
+  }, [plotIdAsNumber]);
+
+  const startPolling = useCallback(() => {
+    if (pollingIntervalRef.current) return; // ya está corriendo
+    pollingIntervalRef.current = setInterval(() => {
+      void pollMeasurements();
+    }, POLLING_INTERVAL_MS);
+    setIsPolling(true);
+  }, [pollMeasurements]);
+
+  const stopPolling = useCallback(() => {
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current);
+      pollingIntervalRef.current = null;
+    }
+    setIsPolling(false);
+  }, []);
+
+  // Carga inicial al montar o cambiar de parcela
   useEffect(() => {
     void loadPlotDashboard();
   }, [plotId]);
+
+  // Arrancar polling automáticamente cuando hay sensores instalados,
+  // pararlo cuando no hay ninguno, y limpiar al desmontar el componente.
+  useEffect(() => {
+    if (sensors.length > 0) {
+      startPolling();
+    } else {
+      stopPolling();
+    }
+    return () => stopPolling();
+  }, [sensors.length]);
 
   const measurements = measurementsResponse?.items ?? [];
 
@@ -376,7 +422,7 @@ export const PlotDashboard = () => {
     <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
       {isEditingPlot && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <EditPlotForm 
+          <EditPlotForm
             plot={plot}
             onSuccess={(updatedPlot) => {
               setPlot(updatedPlot);
@@ -399,8 +445,8 @@ export const PlotDashboard = () => {
             <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
               Parcela #{plot.id}
             </Badge>
-            <button 
-              onClick={() => setIsEditingPlot(true)} 
+            <button
+              onClick={() => setIsEditingPlot(true)}
               className="p-1.5 text-gray-400 hover:text-green-600 rounded-full hover:bg-green-50 transition-colors"
               title="Editar Parcela"
             >
@@ -411,14 +457,29 @@ export const PlotDashboard = () => {
             Cuadricula {plot.tamx}x{plot.tamy} | Granja {plot.granja_id} | {installedSensors} sensores instalados
           </p>
         </div>
-        <button
-          onClick={() => void loadPlotDashboard(true)}
-          disabled={refreshing}
-          className="inline-flex items-center px-4 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 disabled:opacity-70 disabled:cursor-not-allowed"
-        >
-          <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-          {refreshing ? 'Sincronizando...' : 'Sincronizar datos'}
-        </button>
+
+        {/* Controles de polling y refresco manual */}
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => (isPolling ? stopPolling() : startPolling())}
+            className={`inline-flex items-center px-3 py-2 border rounded-lg text-sm font-medium transition-colors ${
+              isPolling
+                ? 'border-green-300 bg-green-50 text-green-700 hover:bg-green-100'
+                : 'border-gray-300 bg-white text-gray-600 hover:bg-gray-50'
+            }`}
+          >
+            <span className={`w-2 h-2 rounded-full mr-2 ${isPolling ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`} />
+            {isPolling ? 'En vivo' : 'Pausado'}
+          </button>
+          <button
+            onClick={() => void loadPlotDashboard(true)}
+            disabled={refreshing}
+            className="inline-flex items-center px-4 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 disabled:opacity-70 disabled:cursor-not-allowed"
+          >
+            <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+            {refreshing ? 'Sincronizando...' : 'Sincronizar datos'}
+          </button>
+        </div>
       </div>
 
       {sensorActionMessage && (
@@ -686,6 +747,12 @@ export const PlotDashboard = () => {
                 <span className="text-gray-600">Modo alta sensor:</span>
                 <Badge className={isAddingSensor ? "bg-purple-100 text-purple-700 hover:bg-purple-100" : "bg-slate-100 text-slate-700 hover:bg-slate-100"}>
                   {isAddingSensor ? 'Activo' : 'Inactivo'}
+                </Badge>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-600">Actualizacion automatica:</span>
+                <Badge className={isPolling ? "bg-green-100 text-green-700 hover:bg-green-100" : "bg-slate-100 text-slate-700 hover:bg-slate-100"}>
+                  {isPolling ? `Cada ${POLLING_INTERVAL_MS / 1000}s` : 'Pausada'}
                 </Badge>
               </div>
             </div>
