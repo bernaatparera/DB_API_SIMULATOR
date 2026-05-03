@@ -25,6 +25,34 @@ class GranjaRead(GranjaBase):
     creado_en: datetime
 
 
+class GranjaDashboardSerieRead(BaseModel):
+    etiqueta: str
+    humedad_media: float | None = None
+    temperatura_media: float | None = None
+    mediciones_count: int
+
+
+class GranjaDashboardCultivoRead(BaseModel):
+    nombre: str
+    parcelas_count: int
+
+
+class GranjaDashboardResumenRead(BaseModel):
+    parcelas_count: int
+    sensores_count: int
+    mediciones_count: int
+    area_total: int
+    humedad_media: float | None = None
+    temperatura_media: float | None = None
+    ultima_medicion: datetime | None = None
+
+
+class GranjaDashboardRead(BaseModel):
+    resumen: GranjaDashboardResumenRead
+    series: list[GranjaDashboardSerieRead]
+    distribucion_cultivos: list[GranjaDashboardCultivoRead]
+
+
 class ParcelaBase(BaseModel):
     granja_id: int
     tipo_cultivo_id: int | None = None

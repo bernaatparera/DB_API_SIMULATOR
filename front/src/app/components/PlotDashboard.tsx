@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { Input } from "./ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "./ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { getMeasurementsByPlot, getParcelaById } from '../services/plotService';
 import { getCasillas, createCasilla } from '../services/cellService';
 import { createSensor, deleteSensor, getSensores } from '../services/sensorService';
@@ -20,6 +21,14 @@ const defaultSensorForm = {
   fabricante: '',
   tipo: 'humedad',
 };
+
+const sensorTypeOptions = [
+  { value: 'humedad', label: 'Humedad' },
+  { value: 'temperatura', label: 'Temperatura' },
+  { value: 'humedad_aire', label: 'Humedad del aire' },
+  { value: 'co2', label: 'CO2' },
+  { value: 'luminosidad', label: 'Luminosidad' },
+];
 
 const normalizeVariableName = (value: string) =>
   value
@@ -916,14 +925,21 @@ export const PlotDashboard = () => {
               <label className="text-sm font-medium text-gray-700" htmlFor="sensor-tipo">
                 Tipo
               </label>
-              <Input
-                id="sensor-tipo"
+              <Select
                 value={sensorForm.tipo}
-                onChange={(event) => handleSensorInputChange('tipo', event.target.value)}
-                placeholder="humedad"
-                required
-                maxLength={50}
-              />
+                onValueChange={(value) => handleSensorInputChange('tipo', value)}
+              >
+                <SelectTrigger id="sensor-tipo">
+                  <SelectValue placeholder="Selecciona un tipo de sensor" />
+                </SelectTrigger>
+                <SelectContent>
+                  {sensorTypeOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             {selectedCell && (

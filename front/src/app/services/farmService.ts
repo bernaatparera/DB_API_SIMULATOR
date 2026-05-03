@@ -1,4 +1,4 @@
-import { Farm, CreateFarmRequest } from "../types/farm";
+import { Farm, CreateFarmRequest, FarmDashboardData } from "../types/farm";
 import { apiRequest } from "./apiClient";
 
 // GET listado
@@ -9,6 +9,10 @@ export const getFarms = async (): Promise<Farm[]> => {
 // GET por id
 export const getFarmById = async (id: string): Promise<Farm> => {
   return apiRequest(`/granjas/${id}`);
+};
+
+export const getFarmDashboard = async (id: string): Promise<FarmDashboardData> => {
+  return apiRequest(`/granjas/${id}/dashboard`);
 };
 
 // POST crear

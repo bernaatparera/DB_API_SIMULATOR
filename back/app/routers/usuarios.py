@@ -11,6 +11,11 @@ from app.security import get_current_user, get_password_hash
 router = APIRouter(prefix="/usuarios", tags=["usuarios"])
 
 
+def comprobar_mismo_user(usuario_id: str, current_user: Usuario) -> None:
+    if str(current_user.id) != usuario_id:
+        raise HTTPException(status_code=403, detail="No autorizado para acceder a este usuario")
+
+
 @router.get("/", response_model=list[UsuarioRead], summary="Listar usuarios")
 def list_usuarios(
     activo: bool | None = None,
@@ -29,9 +34,10 @@ def list_usuarios(
 @router.get("/{usuario_id}", response_model=UsuarioRead, summary="Obtener usuario por ID")
 def get_usuario(
     usuario_id: str,
-    _: Usuario = Depends(get_current_user),
+    current_user: Usuario = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> Usuario:
+    comprobar_mismo_user(usuario_id, current_user)
     usuario = db.get(Usuario, usuario_id)
     if usuario is None:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
@@ -57,9 +63,10 @@ def create_usuario(payload: UsuarioCreate, db: Session = Depends(get_db)) -> Usu
 def update_usuario(
     usuario_id: str,
     payload: UsuarioCreate,
-    _: Usuario = Depends(get_current_user),
+    current_user: Usuario = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> Usuario:
+    comprobar_mismo_user(usuario_id, current_user)
     usuario = db.get(Usuario, usuario_id)
     if usuario is None:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
@@ -82,9 +89,10 @@ def update_usuario(
 def patch_usuario(
     usuario_id: str,
     payload: UsuarioUpdate,
-    _: Usuario = Depends(get_current_user),
+    current_user: Usuario = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> Usuario:
+    comprobar_mismo_user(usuario_id, current_user)
     usuario = db.get(Usuario, usuario_id)
     if usuario is None:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
@@ -111,9 +119,10 @@ def patch_usuario(
 @router.delete("/{usuario_id}", status_code=204, summary="Eliminar usuario")
 def delete_usuario(
     usuario_id: str,
-    _: Usuario = Depends(get_current_user),
+    current_user: Usuario = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> None:
+    comprobar_mismo_user(usuario_id, current_user)
     usuario = db.get(Usuario, usuario_id)
     if usuario is None:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")

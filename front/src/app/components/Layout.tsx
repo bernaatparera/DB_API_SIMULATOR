@@ -4,19 +4,24 @@ import { useAuth } from '../context/AuthContext';
 import { Sprout, LogOut, User as UserIcon } from 'lucide-react';
 
 export const Layout = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, isLoading } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
 
-  // 1. Definimos cuáles son las rutas públicas donde no exigimos estar logueado
   const isPublicRoute = location.pathname === '/login' || location.pathname === '/register';
 
-  // 2. Si no hay usuario y NO es una ruta pública, lo mandamos al login
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <p className="text-sm text-gray-500">Cargando sesión...</p>
+      </div>
+    );
+  }
+
   if (!user && !isPublicRoute) {
     return <Navigate to="/login" replace />;
   }
 
-  // 3. Si es una ruta pública, renderizamos solo la página (sin la barra de navegación superior)
   if (isPublicRoute) {
     return <Outlet />;
   }
@@ -42,7 +47,7 @@ export const Layout = () => {
                 <UserIcon className="w-4 h-4 text-gray-500" />
                 {user?.nombre} {user?.apellidos}
               </div>
-              <button 
+              <button
                 onClick={logout}
                 className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                 title="Cerrar sesión"

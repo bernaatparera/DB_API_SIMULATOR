@@ -15,6 +15,8 @@ export interface ParcelaRead {
   tamy: number;
   tipo_cultivo_nombre?: string | null;
   tipo_cultivo?: string | null;
+  sensores_count?: number;
+  creado_en?: string;
 }
 
 export interface ListParcelasParams {

@@ -30,6 +30,8 @@ coverage/
 
 # misc
 *.log
+__pycache__/
+*.py[cod]
 
 # vite
 .vite
