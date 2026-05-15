@@ -152,9 +152,28 @@ export const FarmDashboard = () => {
         <div className="flex items-center gap-4">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">{farm.nombre}</h1>
-            <p className="mt-1 text-sm text-gray-500">
-              {farm.ubicacion_geo} · {resumen?.parcelas_count ?? plots.length} parcelas activas
-            </p>
+            <div className="mt-1">
+              {(() => {
+                const parts = (farm.ubicacion_geo || '').split(' (');
+                const place = parts[0];
+                const coords = parts[1] ? parts[1].replace(')', '') : null;
+                return (
+                  <>
+                    <p className="text-sm font-medium text-gray-600">
+                      {place || 'Sin ubicación'}
+                    </p>
+                    {coords && (
+                      <p className="text-xs text-gray-400 font-mono">
+                        {coords}
+                      </p>
+                    )}
+                  </>
+                );
+              })()}
+              <p className="mt-1 text-xs text-gray-400 italic">
+                {resumen?.parcelas_count ?? plots.length} parcelas activas
+              </p>
+            </div>
           </div>
           <button
             onClick={() => setIsEditing(true)}
