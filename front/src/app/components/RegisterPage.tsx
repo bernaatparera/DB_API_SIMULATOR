@@ -58,9 +58,7 @@ export function RegisterPage() {
       <div className="absolute inset-0 bg-white/30 backdrop-blur-md"></div>
       <Card className="w-full max-w-md relative z-10 bg-white/95 backdrop-blur-sm border-white/40 shadow-xl">
         <CardHeader className="text-center">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-100 mb-4 mx-auto">
-            <Sprout className="w-8 h-8 text-green-600" />
-          </div>
+          <img src="/pwa-icon.png" alt="Logo" className="w-16 h-16 object-contain mb-4 mx-auto" />
           <CardTitle>Crear Cuenta</CardTitle>
           <CardDescription>Únete a la gestión agrícola inteligente</CardDescription>
         </CardHeader>

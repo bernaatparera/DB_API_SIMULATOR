@@ -55,7 +55,7 @@ export const FarmList = () => {
       <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Mis Granjas</h1>
-          <p className="mt-1 text-sm text-gray-500">Bienvenido de nuevo, {user?.email}</p>
+          <p className="mt-1 text-sm text-gray-500">Bienvenido de nuevo, {user?.nombre}</p>
         </div>
         <button onClick={() => navigate("/farms/new")} className="inline-flex items-center px-4 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700">
           <Plus className="w-5 h-5 mr-2 -ml-1" />

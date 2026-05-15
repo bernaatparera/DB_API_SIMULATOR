@@ -59,17 +59,11 @@ export const NewPlotForm = () => {
 
   return (
     <div className="max-w-3xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-      <div className="flex items-center text-sm font-medium text-gray-500 hover:text-gray-900 mb-8 cursor-pointer w-fit" onClick={() => navigate(`/farms/${farmId}`)}>
-        <ArrowLeft className="w-4 h-4 mr-1" />
-        Volver a la granja
-      </div>
 
       <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
         <div className="p-8 border-b border-gray-200 bg-green-50/50">
           <div className="flex items-center space-x-3 mb-2">
-            <div className="p-2 bg-green-100 rounded-lg text-green-600">
-              <Sprout className="w-6 h-6" />
-            </div>
+            <img src="/pwa-icon.png" alt="Logo" className="w-10 h-10 object-contain" />
             <h1 className="text-2xl font-bold text-gray-900">Nueva Parcela</h1>
           </div>
           <p className="text-gray-500 mt-2">Configura las dimensiones de tu parcela y selecciona el cultivo.</p>
@@ -125,9 +119,9 @@ export const NewPlotForm = () => {
               <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 flex items-start gap-3">
                 <Maximize className="w-5 h-5 text-blue-500 mt-0.5 shrink-0" />
                 <div>
-                  <h4 className="text-sm font-medium text-blue-900">Asignación automática</h4>
+                  <h4 className="text-sm font-medium text-blue-900">Recomendación de Sensores</h4>
                   <p className="text-xs text-blue-700 mt-1">
-                    Con un área de {width * height} m², el sistema asignará automáticamente <strong className="font-bold">{estimatedSensors} sensores</strong> para una cobertura óptima.
+                    Con un área de {width * height} m², se recomienda instalar al menos <strong className="font-bold">{estimatedSensors} sensores</strong> para una cobertura óptima. Podrás añadirlos manualmente una vez creada la parcela.
                   </p>
                 </div>
               </div>

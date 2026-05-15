@@ -33,9 +33,7 @@ export const Layout = () => {
           <div className="flex justify-between h-16">
             <div className="flex items-center">
               <div className="flex-shrink-0 flex items-center gap-2 cursor-pointer" onClick={() => window.location.href = '/farms'}>
-                <div className="p-2 bg-green-100 rounded-lg">
-                  <Sprout className="w-6 h-6 text-green-600" />
-                </div>
+                <img src="/pwa-icon.png" alt="Logo" className="w-10 h-10 object-contain" />
                 <span className="text-xl font-bold text-gray-900 tracking-tight">AgroPrecision</span>
               </div>
             </div>

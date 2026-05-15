@@ -2,16 +2,22 @@ import { apiRequest } from './apiClient';
 import { RegistroManualCreate, RegistroManualRead } from '../types/manualRecord';
 
 export const getRegistrosManuales = async (casilla_id?: number): Promise<RegistroManualRead[]> => {
-  const url = casilla_id ? `/api/v1/registros_manuales/?casilla_id=${casilla_id}` : '/api/v1/registros_manuales/';
-  const response = await apiRequest('GET', url);
-  return response as RegistroManualRead[];
+  const url = casilla_id ? `/registros_manuales/?casilla_id=${casilla_id}` : '/registros_manuales/';
+  return apiRequest(url);
 };
 
 export const createRegistroManual = async (data: RegistroManualCreate): Promise<RegistroManualRead> => {
-  const response = await apiRequest('POST', '/api/v1/registros_manuales/', data);
-  return response as RegistroManualRead;
+  return apiRequest('/registros_manuales/', {
+    method: 'POST',
+    body: JSON.stringify(data),
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
 };
 
 export const deleteRegistroManual = async (id: number): Promise<void> => {
-  await apiRequest('DELETE', `/api/v1/registros_manuales/${id}`);
+  await apiRequest(`/registros_manuales/${id}`, {
+    method: 'DELETE',
+  });
 };

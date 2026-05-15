@@ -46,9 +46,7 @@ export const ServiciosPage = () => {
 
       <header className={`sticky top-0 z-50 flex items-center justify-between p-6 md:px-12 lg:px-20 transition-all duration-300 ${isScrolled ? 'backdrop-blur-md bg-black/10' : 'bg-transparent'}`}>
         <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/')}>
-          <div className="bg-green-600 p-2 rounded-lg">
-            <Sprout className="w-6 h-6 text-white" />
-          </div>
+          <img src="/pwa-icon.png" alt="AgroPrecision Logo" className="w-10 h-10 object-contain drop-shadow-md" />
           <span className="text-2xl font-bold text-white tracking-wider drop-shadow-md">
             AgroPrecision
           </span>

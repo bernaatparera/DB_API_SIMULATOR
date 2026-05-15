@@ -178,7 +178,7 @@ export default function EditPlotForm({ plot, onSuccess, onCancel }: EditPlotForm
           </div>
 
         </CardContent>
-        <CardFooter className="flex justify-end space-x-3 pt-4 border-t">
+        <CardFooter className="flex justify-end space-x-3 pt-6 mt-4 border-t">
           <Button
             type="button"
             variant="outline"
