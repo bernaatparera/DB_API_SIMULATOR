@@ -10,6 +10,7 @@ from app.routers import (
     health,
     mediciones,
     parcelas,
+    registros_manuales,
     sensores,
     tipos_cultivo,
     usuarios,
@@ -43,6 +44,7 @@ app.include_router(tipos_cultivo.router, prefix="/api/v1", dependencies=[Depends
 app.include_router(ciclos_cultivo.router, prefix="/api/v1", dependencies=[Depends(get_current_user)])
 app.include_router(sensores.router, prefix="/api/v1")
 app.include_router(mediciones.router, prefix="/api/v1")
+app.include_router(registros_manuales.router, prefix="/api/v1", dependencies=[Depends(get_current_user)])
 
 
 @app.get("/", tags=["meta"], summary="Informacion de la API")

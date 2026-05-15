@@ -258,3 +258,22 @@ class CicloCultivoRead(CicloCultivoBase):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
+
+
+class RegistroManualBase(BaseModel):
+    casilla_id: int
+    puntuacion: float | None = Field(default=None, ge=1, le=5)
+    descripcion: str | None = None
+    imagen_url: str | None = Field(default=None, max_length=255)
+
+
+class RegistroManualCreate(RegistroManualBase):
+    pass
+
+
+class RegistroManualRead(RegistroManualBase):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    usuario_id: UUID
+    dia_hora: datetime

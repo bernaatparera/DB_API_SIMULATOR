@@ -14,7 +14,54 @@ import { MeasurementsByPlotResponse } from '../types/measurement';
 import { CasillaRead } from '../types/cell';
 import { SensorRead } from '../types/sensor';
 import { ParcelaRead } from '../types/plot';
+import { RegistroManualRead } from '../types/manualRecord';
 import EditPlotForm from './EditPlotForm';
+
+const PlotCell = React.memo(({ 
+  x, y, 
+  isSelected, 
+  isAddingSensor, 
+  sensorCount, 
+  onClick 
+}: { 
+  x: number; y: number; 
+  isSelected: boolean; 
+  isAddingSensor: boolean; 
+  sensorCount: number; 
+  onClick: (x: number, y: number) => void; 
+}) => {
+  const isLightSquare = (y + x) % 2 === 0;
+
+  return (
+    <div
+      onClick={() => onClick(x, y)}
+      className={`
+        w-14 h-14 sm:w-16 sm:h-16 flex-shrink-0 flex flex-col items-center justify-center
+        cursor-pointer transition-all duration-200 hover:scale-105 rounded-lg relative
+        ${isLightSquare ? 'bg-green-50' : 'bg-green-100'}
+        ${isSelected ? 'border-4 border-blue-500 shadow-lg' : 'border border-green-200'}
+        ${isAddingSensor ? 'ring-2 ring-purple-400 ring-inset' : ''}
+      `}
+      title={`Posición (${x}, ${y})`}
+    >
+      {sensorCount > 0 && (
+        <div className="absolute top-1 right-1 z-10 flex items-center gap-1 rounded-full bg-purple-600 px-1.5 py-1 text-white shadow-md">
+          <Cpu className="w-2.5 h-2.5" />
+          {sensorCount > 1 && <span className="text-[9px] font-bold">{sensorCount}</span>}
+        </div>
+      )}
+
+      <div className="w-9 h-9 rounded-full bg-white/80 flex items-center justify-center shadow-sm">
+        <MapPin className={`w-4 h-4 ${sensorCount > 0 ? 'text-purple-700' : 'text-green-700'}`} />
+      </div>
+      <span className="absolute bottom-1 left-1 text-[8px] font-bold text-black/30">
+        {x},{y}
+      </span>
+    </div>
+  );
+});
+
+import { getRegistrosManuales, createRegistroManual, deleteRegistroManual } from '../services/manualRecordService';
 
 const defaultSensorForm = {
   numref: '',
@@ -105,6 +152,13 @@ export const PlotDashboard = () => {
   const [isDeleteSensorDialogOpen, setIsDeleteSensorDialogOpen] = useState(false);
   const [isDeletingSensorId, setIsDeletingSensorId] = useState<number | null>(null);
 
+  // Estados para registros manuales
+  const [manualRecords, setManualRecords] = useState<RegistroManualRead[]>([]);
+  const [isRecordDialogOpen, setIsRecordDialogOpen] = useState(false);
+  const [isSubmittingRecord, setIsSubmittingRecord] = useState(false);
+  const [recordForm, setRecordForm] = useState({ puntuacion: 5, descripcion: '' });
+  const [recordFormError, setRecordFormError] = useState<string | null>(null);
+
   // Estado y refs del polling
   const [isPolling, setIsPolling] = useState(false);
   const pollingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -140,10 +194,15 @@ export const PlotDashboard = () => {
         ? await Promise.all(cellsData.map((cell) => getSensores({ casilla_id: cell.id, limit: 1000 })))
         : [];
 
+      const recordsResponses = cellsData.length > 0
+        ? await Promise.all(cellsData.map((cell) => getRegistrosManuales(cell.id)))
+        : [];
+
       setPlot(plotData);
       setMeasurementsResponse(measurementsData);
       setCells(cellsData);
       setSensors(sensorResponses.flat());
+      setManualRecords(recordsResponses.flat());
       setSelectedCell(null);
       setIsAddingSensor(false);
       setIsSensorDialogOpen(false);
@@ -185,6 +244,18 @@ export const PlotDashboard = () => {
     setIsPolling(false);
   }, []);
 
+  const handleCellClick = useCallback((x: number, y: number) => {
+    setSelectedCell({ x, y });
+
+    if (isAddingSensor) {
+      setSensorActionMessage(null);
+      setSensorFormError(null);
+      setSensorForm(defaultSensorForm);
+      setIsSensorDialogOpen(true);
+      setIsAddingSensor(false);
+    }
+  }, [isAddingSensor]);
+
   // Carga inicial al montar o cambiar de parcela
   useEffect(() => {
     void loadPlotDashboard();
@@ -218,6 +289,18 @@ export const PlotDashboard = () => {
 
     return grouped;
   }, [sensors]);
+
+  const recordsByCellId = useMemo(() => {
+    const grouped = new Map<number, RegistroManualRead[]>();
+
+    manualRecords.forEach((record) => {
+      const current = grouped.get(record.casilla_id) ?? [];
+      current.push(record);
+      grouped.set(record.casilla_id, current);
+    });
+
+    return grouped;
+  }, [manualRecords]);
 
   if (loading) {
     return <div className="p-8 text-center text-gray-500">Cargando parcela...</div>;
@@ -319,6 +402,7 @@ export const PlotDashboard = () => {
 
   const selectedCellBackend = selectedCell ? cellsByCoordinate.get(`${selectedCell.x},${selectedCell.y}`) ?? null : null;
   const selectedCellSensors = selectedCellBackend ? sensorsByCellId.get(selectedCellBackend.id) ?? [] : [];
+  const selectedCellRecords = selectedCellBackend ? recordsByCellId.get(selectedCellBackend.id) ?? [] : [];
 
   const handleBack = () => {
     if (farmId) {
@@ -341,17 +425,6 @@ export const PlotDashboard = () => {
     setIsSensorDialogOpen(true);
   };
 
-  const handleCellClick = (x: number, y: number) => {
-    setSelectedCell({ x, y });
-
-    if (isAddingSensor) {
-      setSensorActionMessage(null);
-      setSensorFormError(null);
-      setSensorForm(defaultSensorForm);
-      setIsSensorDialogOpen(true);
-      setIsAddingSensor(false);
-    }
-  };
 
   const handleSensorInputChange = (field: keyof typeof defaultSensorForm, value: string) => {
     setSensorForm((current) => ({
@@ -424,6 +497,48 @@ export const PlotDashboard = () => {
       setSensorActionMessage('Error al eliminar el sensor.');
     } finally {
       setIsDeletingSensorId(null);
+    }
+  };
+
+  const handleCreateRecord = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (!selectedCell) {
+      setRecordFormError("Selecciona una celda antes de añadir un registro.");
+      return;
+    }
+
+    setIsSubmittingRecord(true);
+    setRecordFormError(null);
+
+    try {
+      let backendCell = cellsByCoordinate.get(`${selectedCell.x},${selectedCell.y}`) ?? null;
+
+      if (!backendCell) {
+        backendCell = await createCasilla({
+          parcela_id: plot.id,
+          posx: selectedCell.x,
+          posy: selectedCell.y,
+        });
+
+        setCells((current) => [...current, backendCell as CasillaRead]);
+      }
+
+      const createdRecord = await createRegistroManual({
+        casilla_id: backendCell.id,
+        puntuacion: recordForm.puntuacion,
+        descripcion: recordForm.descripcion || null,
+      });
+
+      setManualRecords((current) => [createdRecord, ...current]);
+      setSensorActionMessage(`Observación añadida a la celda (${selectedCell.x}, ${selectedCell.y}).`);
+      setIsRecordDialogOpen(false);
+      setRecordForm({ puntuacion: 5, descripcion: '' });
+    } catch (requestError) {
+      console.error(requestError);
+      setRecordFormError(requestError instanceof Error ? requestError.message : "No se pudo crear la observación.");
+    } finally {
+      setIsSubmittingRecord(false);
     }
   };
 
@@ -545,8 +660,8 @@ export const PlotDashboard = () => {
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
-        <div className="col-span-1 lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8 lg:h-[calc(100vh-8rem)] lg:min-h-[600px]">
+        <div className="col-span-1 lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col h-full">
           <div className="p-6 border-b border-gray-100 bg-gray-50 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
             <div>
               <h2 className="text-lg font-semibold text-gray-900">Mapa de la Parcela</h2>
@@ -571,11 +686,11 @@ export const PlotDashboard = () => {
             </button>
           </div>
 
-          <div className="p-8 bg-gradient-to-br from-green-50/50 to-emerald-50/30 flex justify-center overflow-auto">
+          <div className="p-6 bg-gradient-to-br from-green-50/50 to-emerald-50/30 overflow-auto flex-1">
             <div
-              className="grid gap-2 relative"
+              className="grid gap-3 w-fit mx-auto"
               style={{
-                gridTemplateColumns: `repeat(${plot.tamx}, minmax(0, 1fr))`,
+                gridTemplateColumns: `repeat(${plot.tamx}, 3.5rem)`,
               }}
             >
               {gridCells.map((cell) => {
@@ -584,39 +699,22 @@ export const PlotDashboard = () => {
                 const sensorCount = cell.sensors.length;
 
                 return (
-                  <div
+                  <PlotCell
                     key={`${cell.x}-${cell.y}`}
-                    onClick={() => handleCellClick(cell.x, cell.y)}
-                    className={`
-                      aspect-square w-16 h-16 sm:w-20 sm:h-20 flex flex-col items-center justify-center
-                      cursor-pointer transition-all duration-200 hover:scale-105 rounded-lg relative
-                      ${isLightSquare ? 'bg-green-50' : 'bg-green-100'}
-                      ${isSelected ? 'border-4 border-blue-500 shadow-lg' : 'border border-green-200'}
-                      ${isAddingSensor ? 'ring-2 ring-purple-300 ring-offset-2' : ''}
-                    `}
-                    title={`Posicion (${cell.x}, ${cell.y})`}
-                  >
-                    {sensorCount > 0 && (
-                      <div className="absolute top-1 right-1 z-10 flex items-center gap-1 rounded-full bg-purple-600 px-1.5 py-1 text-white shadow-md">
-                        <Cpu className="w-2.5 h-2.5" />
-                        {sensorCount > 1 && <span className="text-[9px] font-bold">{sensorCount}</span>}
-                      </div>
-                    )}
-
-                    <div className="w-9 h-9 rounded-full bg-white/80 flex items-center justify-center shadow-sm">
-                      <MapPin className={`w-4 h-4 ${sensorCount > 0 ? 'text-purple-700' : 'text-green-700'}`} />
-                    </div>
-                    <span className="absolute bottom-1 left-1 text-[8px] font-bold text-black/30">
-                      {cell.x},{cell.y}
-                    </span>
-                  </div>
+                    x={cell.x}
+                    y={cell.y}
+                    isSelected={isSelected}
+                    isAddingSensor={isAddingSensor}
+                    sensorCount={sensorCount}
+                    onClick={handleCellClick}
+                  />
                 );
               })}
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 h-full overflow-y-auto custom-scrollbar">
           <h3 className="text-lg font-semibold text-gray-900 mb-6">Resumen de la Parcela</h3>
 
           <div className="space-y-4">
@@ -725,6 +823,32 @@ export const PlotDashboard = () => {
                     Eliminar sensor
                   </button>
                 )}
+                {selectedCellRecords.length > 0 && (
+                  <div className="mt-4 pt-4 border-t border-gray-100 space-y-2">
+                    <h5 className="text-sm font-semibold text-gray-700">Observaciones:</h5>
+                    {selectedCellRecords.map((record) => (
+                      <div key={record.id} className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-xs text-amber-800 font-medium">{formatMeasurementDate(record.dia_hora)}</span>
+                          {record.puntuacion && (
+                            <span className="text-xs bg-amber-200 text-amber-800 px-1.5 py-0.5 rounded-full font-bold">
+                              {record.puntuacion}/5 ★
+                            </span>
+                          )}
+                        </div>
+                        {record.descripcion && <p className="text-sm text-gray-700">{record.descripcion}</p>}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <button
+                  onClick={() => setIsRecordDialogOpen(true)}
+                  className="w-full inline-flex items-center justify-center px-4 py-2.5 rounded-lg bg-amber-100 text-amber-700 font-medium hover:bg-amber-200 border border-amber-300 mt-2"
+                >
+                  <Edit3 className="w-4 h-4 mr-2" />
+                  Añadir observación
+                </button>
               </div>
             ) : (
               <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50 px-4 py-6 text-sm text-gray-500 text-center">
@@ -1039,6 +1163,82 @@ export const PlotDashboard = () => {
                 className="inline-flex items-center justify-center rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-70"
               >
                 {isSubmittingSensor ? 'Guardando...' : 'Guardar sensor'}
+              </button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={isRecordDialogOpen}
+        onOpenChange={(open) => {
+          setIsRecordDialogOpen(open);
+          if (!open) setRecordFormError(null);
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Añadir Observación</DialogTitle>
+            <DialogDescription>
+              Añade un comentario o valoración manual para la celda seleccionada.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleCreateRecord} className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700" htmlFor="record-puntuacion">
+                Puntuación (1 a 5)
+              </label>
+              <Select
+                value={String(recordForm.puntuacion)}
+                onValueChange={(value) => setRecordForm(prev => ({ ...prev, puntuacion: Number(value) }))}
+              >
+                <SelectTrigger id="record-puntuacion">
+                  <SelectValue placeholder="Selecciona una puntuación" />
+                </SelectTrigger>
+                <SelectContent>
+                  {[5, 4, 3, 2, 1].map((val) => (
+                    <SelectItem key={val} value={String(val)}>
+                      {val} Estrellas
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700" htmlFor="record-descripcion">
+                Comentarios
+              </label>
+              <Input
+                id="record-descripcion"
+                value={recordForm.descripcion}
+                onChange={(event) => setRecordForm(prev => ({ ...prev, descripcion: event.target.value }))}
+                placeholder="Ej. La tierra parece muy seca en esta zona..."
+                maxLength={500}
+              />
+            </div>
+
+            {recordFormError && (
+              <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                {recordFormError}
+              </div>
+            )}
+
+            <DialogFooter>
+              <button
+                type="button"
+                onClick={() => setIsRecordDialogOpen(false)}
+                className="inline-flex items-center justify-center rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                disabled={isSubmittingRecord}
+                className="inline-flex items-center justify-center rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                {isSubmittingRecord ? 'Guardando...' : 'Guardar observación'}
               </button>
             </DialogFooter>
           </form>
