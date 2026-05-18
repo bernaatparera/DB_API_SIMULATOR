@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router';
 import { useAuth } from '../context/AuthContext';
-import { Sprout } from 'lucide-react';
+import { Sprout, ArrowLeft } from 'lucide-react';
 import { AuthUser } from '../types/auth';
 import { getMe, loginUser } from '../services/authService';
 
@@ -49,10 +49,15 @@ export const Login = () => {
     >
       <div className="absolute inset-0 bg-white/30 backdrop-blur-md"></div>
       <div className="max-w-md w-full bg-white/95 backdrop-blur-sm rounded-2xl shadow-xl p-8 space-y-8 relative z-10 border border-white/40">
+        <button 
+          onClick={() => navigate('/')} 
+          className="flex items-center text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors mb-2"
+        >
+          <ArrowLeft className="w-4 h-4 mr-1" />
+          Inicio
+        </button>
         <div className="text-center">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-100 mb-4">
-            <Sprout className="w-8 h-8 text-green-600" />
-          </div>
+          <img src="/pwa-icon.png" alt="Logo" className="w-16 h-16 object-contain mb-4 mx-auto" />
           <h2 className="text-3xl font-bold text-gray-900">Bienvenido de nuevo</h2>
           <p className="mt-2 text-sm text-gray-600">Accede a tu plataforma de gestión</p>
         </div>

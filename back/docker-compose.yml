@@ -33,5 +33,15 @@ services:
     volumes:
       - .:/app
 
+  adminer:
+    image: adminer
+    container_name: agroprecision-adminer
+    restart: unless-stopped
+    ports:
+      - "8081:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+
 volumes:
   postgres_data:

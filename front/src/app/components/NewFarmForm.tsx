@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Button } from "./ui/button";
-import { X, Ruler, Warehouse } from "lucide-react";
+import { X, Warehouse, MapPin } from "lucide-react";
 import { useAppContext } from "../context/AppContext";
 import { toast } from "sonner";
 import { createFarm } from "../services/farmService";
@@ -114,13 +114,61 @@ export function NewFarmForm() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="ubicacion" className="text-sm font-medium">
-                  Ubicación
-                </Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="ubicacion" className="text-sm font-medium">
+                    Ubicación
+                  </Label>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 text-xs text-blue-600 hover:text-blue-800 hover:bg-blue-50 px-2"
+                    onClick={() => {
+                      if ("geolocation" in navigator) {
+                        toast.info("Obteniendo ubicación...");
+                        navigator.geolocation.getCurrentPosition(
+                          async (position) => {
+                            const { latitude, longitude } = position.coords;
+                            try {
+                              const response = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`);
+                              const data = await response.json();
+                              const city = data.address?.city || data.address?.town || data.address?.village || data.address?.county || "";
+                              const state = data.address?.state || "";
+                              
+                              let locationStr = "";
+                              if (city || state) {
+                                locationStr = `${[city, state].filter(Boolean).join(", ")} (${latitude.toFixed(4)}, ${longitude.toFixed(4)})`;
+                              } else {
+                                locationStr = `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
+                              }
+                              
+                              handleChange("ubicacion", locationStr);
+                              toast.success("Ubicación obtenida correctamente");
+                            } catch (e) {
+                              // Fallback si falla la API
+                              handleChange("ubicacion", `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`);
+                              toast.success("Coordenadas obtenidas (sin nombre de ciudad)");
+                            }
+                          },
+                          (error) => {
+                            console.error(error);
+                            toast.error("Error al obtener ubicación. Comprueba los permisos.");
+                          },
+                          { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+                        );
+                      } else {
+                        toast.error("Geolocalización no soportada en este navegador");
+                      }
+                    }}
+                  >
+                    <MapPin className="w-3 h-3 mr-1" />
+                    Usar mi ubicación actual
+                  </Button>
+                </div>
                 <Input
                   id="ubicacion"
                   type="text"
-                  placeholder="Ej. Calle Mayor 12, Palma"
+                  placeholder="Ej. 39.5696, 2.6502 o Calle Mayor 12"
                   value={formData.ubicacion}
                   onChange={(e) => handleChange("ubicacion", e.target.value)}
                   className={`border-gray-300 ${errors.ubicacion ? "border-red-500" : ""}`}
